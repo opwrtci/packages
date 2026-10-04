@@ -330,6 +330,13 @@ return view.extend({
 			]);
 		}
 
+		if (uci.get('homeproxy', 'diversion') == null)
+			uci.add('homeproxy', 'homeproxy', 'diversion');
+		if (uci.get('homeproxy', 'control') == null)
+			uci.add('homeproxy', 'homeproxy', 'control');
+		if (uci.get('homeproxy', 'tailscale') == null)
+			uci.add('homeproxy', 'homeproxy', 'tailscale');
+
 		s = m.section(form.NamedSection, 'config', 'homeproxy');
 
 		s.tab('routing', _('Routing Settings'));

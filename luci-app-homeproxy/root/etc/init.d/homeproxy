@@ -221,6 +221,7 @@ start_service() {
 		return 1
 	fi
 
+	ucode -S "$HP_DIR/scripts/migrate_config.uc" 2>>"$LOG_PATH" || true
 	rm -f "$RUN_DIR/sing-box-c.json.new" "$RUN_DIR/sing-box-s.json.new"
 
 	# Generate and validate every enabled instance before changing system state.
