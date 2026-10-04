@@ -509,7 +509,7 @@ const methods = {
 				delay_failed: 'delay_failed',
 				backend_execution_failed: 'backend_execution_failed'
 			};
-			const probe_url_encoded = 'https%3A%2F%2Fcp.cloudflare.com%2Fgenerate_204';
+			const probe_url_encoded = 'https%3A%2F%2Fwww.google.com%2Fgenerate_204';
 			const delay_timeout_ms = 5000;
 			const probe_parallelism = 16;
 			const hpuci = cursor();
@@ -579,6 +579,7 @@ const methods = {
 					route: {
 						final: 'direct-out',
 						auto_detect_interface: true,
+						default_mark: 8228,
 						default_domain_resolver: { server: 'local-dns', strategy: dns_strategy }
 					},
 					experimental: {
@@ -690,7 +691,7 @@ const methods = {
 					);
 					entry.response_path = `${runtime_meta.session_dir}/${entry.tag}.json`;
 					push(commands, sprintf(
-						'/usr/bin/curl -fsS --connect-timeout 1 --max-time %d -o %s %s 2>"/dev/null" &',
+						'/usr/bin/curl -sS --connect-timeout 1 --max-time %d -o %s %s 2>"/dev/null" &',
 						int((delay_timeout_ms + 999) / 1000),
 						shellQuote(entry.response_path),
 						shellQuote(delay_endpoint)

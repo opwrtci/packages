@@ -133,7 +133,7 @@ configure_subscription_cron() {
 	}
 
 	if [ -f "$CRON_FILE" ]; then
-		sed "/[[:space:]]${CRON_TAG}[[:space:]]*$/d" "$CRON_FILE" > "$tmp" || {
+		sed "/\${CRON_TAG}/d" "$CRON_FILE" > "$tmp" || {
 			rm -f "$tmp"
 			lock -u "$CRON_LOCK"
 			return 1
