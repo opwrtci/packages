@@ -2505,8 +2505,8 @@ msgstr "TUN 多队列"
 msgid "Enable TUN multi-queue to scale throughput with CPU cores. Requires the sing-tun TCP/IP stack."
 msgstr "开启 TUN 多队列以利用多核 CPU 提升吞吐量。需要 sing-tun 协议栈。"
 
-msgid "将 TCP 与 UDP 统一设置为 TUN 虚拟网卡模式"
-msgstr "将 TCP 与 UDP 统一设置为 TUN 虚拟网卡模式"
+msgid "纯 TUN 模式"
+msgstr "纯 TUN 模式"
 
 msgid "统一使用纯 TUN 虚拟网卡接管 TCP 与 UDP 流量，关闭 TCP REDIRECT 端口重定向。默认关闭。"
 msgstr "统一使用纯 TUN 虚拟网卡接管 TCP 与 UDP 流量，关闭 TCP REDIRECT 端口重定向。默认关闭。"

@@ -457,14 +457,6 @@ return view.extend({
 		o.default = 'bypass_mainland_china';
 		o.rmempty = false;
 
-		o = s.taboption('routing', form.ListValue, 'ruleset_provider', _('Rule set provider'),
-			_('Select the source provider for GeoIP and GeoSite rule sets. MetaCubeX provides up-to-date mainland China IP ranges.'));
-		o.depends('routing_mode', 'bypass_mainland_china');
-		o.value('metacubex', _('MetaCubeX (Recommended, China IP updated)'));
-		o.value('sagernet', _('SagerNet (Official default)'));
-		o.default = 'metacubex';
-		o.rmempty = false;
-
 		o = s.taboption('routing', form.Value, 'routing_port', _('Routing ports'),
 			_('Specify target ports to be proxied. Multiple ports must be separated by commas.'));
 		o.depends('routing_mode', 'bypass_mainland_china');
@@ -494,7 +486,7 @@ return view.extend({
 		o.depends('routing_mode', 'global');
 		o.rmempty = false;
 
-		o = s.taboption('routing', form.Flag, 'pure_tun', _('将 TCP 与 UDP 统一设置为 TUN 虚拟网卡模式'));
+		o = s.taboption('routing', form.Flag, 'pure_tun', _('纯 TUN 模式'));
 		o.description = _('统一使用纯 TUN 虚拟网卡接管 TCP 与 UDP 流量，关闭 TCP REDIRECT 端口重定向。默认关闭。');
 		o.default = o.disabled;
 		o.depends('routing_mode', 'bypass_mainland_china');
