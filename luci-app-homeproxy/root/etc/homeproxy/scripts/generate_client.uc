@@ -191,6 +191,7 @@ const tun_addr4 = uci.get(uciconfig, uciinfra, 'tun_addr4') || '172.19.0.1/30';
 const tun_addr6 = uci.get(uciconfig, uciinfra, 'tun_addr6') || 'fdfe:dcba:9876::1/126';
 const tun_mtu = uci.get(uciconfig, uciinfra, 'tun_mtu') || '9000';
 const multi_queue = uci.get(uciconfig, ucimain, 'multi_queue') === '1';
+const pure_tun = uci.get(uciconfig, ucimain, 'pure_tun') === '1';
 const udp_timeout_option = uci.get(uciconfig, uciinfra, 'udp_timeout');
 /* 5m is sing-box's default, so only pass through an explicit override. */
 const udp_timeout = (udp_timeout_option !== '300') ? strToTime(udp_timeout_option) : null;
@@ -283,10 +284,17 @@ function push_route(rules, match_rule, outbound, invert) {
 function push_bypass(rules, match_rule) {
 	if (!match_rule)
 		return;
-	push(rules, {
-		...match_rule,
-		action: 'bypass'
-	});
+	if (pure_tun)
+		push(rules, {
+			...match_rule,
+			action: 'route',
+			outbound: 'direct'
+		});
+	else
+		push(rules, {
+			...match_rule,
+			action: 'bypass'
+		});
 }
 
 function tun_match(match_rule) {
@@ -614,7 +622,12 @@ push(config.inbounds, {
 	address: [tun_addr4, tun_addr6],
 	mtu: strToInt(tun_mtu),
 	auto_route: true,
-	auto_redirect: true,
+	auto_redirect: !pure_tun,
+	route_exclude_address: pure_tun ? [
+		'10.0.0.0/8', '127.0.0.0/8', '169.254.0.0/16',
+		'172.16.0.0/12', '192.168.0.0/16', '100.64.0.0/10',
+		'::1/128', 'fc00::/7', 'fe80::/10'
+	] : null,
 	route_exclude_address_set: fast_bypass_mainland ? ['geoip-cn'] : null,
 	include_interface: length(listen_interfaces) ? listen_interfaces : null,
 	udp_timeout,

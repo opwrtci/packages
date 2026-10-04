@@ -159,6 +159,7 @@ setDefault('config', 'main_urltest_tolerance', '60');
 setDefault('config', 'main_urltest_interrupt_exist_connections', '0');
 setDefault('config', 'log_level', 'warn');
 setDefault('config', 'multi_queue', '1');
+setDefault('config', 'pure_tun', '0');
 if (isEmpty(uci.get(uciconfig, 'tailscale')))
 	uci.set(uciconfig, 'tailscale', 'homeproxy');
 setDefault('tailscale', 'enabled', '0');

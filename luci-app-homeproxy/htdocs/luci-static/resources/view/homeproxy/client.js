@@ -487,6 +487,20 @@ return view.extend({
 			return true;
 		}
 
+		o = s.taboption('routing', form.Flag, 'multi_queue', _('TUN multi-queue'),
+			_('Enable TUN multi-queue to scale throughput with CPU cores. Requires the sing-tun TCP/IP stack.'));
+		o.default = o.enabled;
+		o.depends('routing_mode', 'bypass_mainland_china');
+		o.depends('routing_mode', 'global');
+		o.rmempty = false;
+
+		o = s.taboption('routing', form.Flag, 'pure_tun', _('将 TCP 与 UDP 统一设置为 TUN 虚拟网卡模式'));
+		o.description = _('统一使用纯 TUN 虚拟网卡接管 TCP 与 UDP 流量，关闭 TCP REDIRECT 端口重定向。默认关闭。');
+		o.default = o.disabled;
+		o.depends('routing_mode', 'bypass_mainland_china');
+		o.depends('routing_mode', 'global');
+		o.rmempty = false;
+
 		o = s.taboption('routing', form.Flag, 'ipv6_support', _('IPv6 support'));
 		o.default = o.enabled;
 		o.rmempty = false;
