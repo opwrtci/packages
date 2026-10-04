@@ -222,6 +222,9 @@ function getResources(o) {
 		cbi_update_table(table, renderRows(result.resources));
 
 		let currentProvider = result.provider || 'metacubex';
+		let isUpdating = result.is_updating || false;
+		let updatePollTimer = null;
+
 		const providerSelect = E('select', {
 			'class': 'cbi-input-select',
 			'style': 'margin-left:8px;margin-right:8px;max-width:280px;',
@@ -253,9 +256,6 @@ function getResources(o) {
 		]);
 		providerSelect.value = currentProvider;
 		providerSelect.disabled = isUpdating ? true : false;
-
-		let isUpdating = result.is_updating || false;
-		let updatePollTimer = null;
 
 		function streamLog() {
 			const logEl = document.getElementById('homeproxy-log');
