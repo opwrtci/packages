@@ -2471,3 +2471,30 @@ msgstr "有效端口范围（port1:port2）"
 #: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/client.js:472
 msgid "valid port value"
 msgstr "有效端口值"
+
+#: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/client.js:460
+msgid "Rule set provider"
+msgstr "规则集提供商"
+
+#: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/status.js:231
+msgid "Provider:"
+msgstr "规则源："
+
+#: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/status.js:224
+#: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/client.js:463
+msgid "MetaCubeX (Recommended, China IP updated)"
+msgstr "MetaCubeX (推荐，国内IP更新及时)"
+
+#: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/status.js:225
+#: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/client.js:464
+msgid "SagerNet (Official default)"
+msgstr "SagerNet (官方默认)"
+
+#: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/client.js:461
+msgid "Select the source provider for GeoIP and GeoSite rule sets. MetaCubeX provides up-to-date mainland China IP ranges."
+msgstr "选择 GeoIP 和 GeoSite 规则集的数据提供商。MetaCubeX 提供更及时的中国大陆 IP 网段。"
+
+#: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/status.js:218
+msgid "Rule set provider changed to %s. Please click \"Update all\" to download new rules."
+msgstr "规则集提供商已切换为 %s。请点击“全部更新”下载对应规则。"
+

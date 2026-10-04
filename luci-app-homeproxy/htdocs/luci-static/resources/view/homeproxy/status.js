@@ -173,6 +173,13 @@ function getResources(o) {
 		expect: { '': {} }
 	});
 
+	const callResSetProvider = rpc.declare({
+		object: 'luci.homeproxy',
+		method: 'resources_set_provider',
+		params: ['provider'],
+		expect: { '': {} }
+	});
+
 	const callResUpdate = rpc.declare({
 		object: 'luci.homeproxy',
 		method: 'resources_update',
@@ -210,9 +217,27 @@ function getResources(o) {
 		});
 		cbi_update_table(table, rows);
 
+		const currentProvider = result.provider || 'metacubex';
+		const providerSelect = E('select', {
+			'class': 'cbi-input-select',
+			'style': 'margin-left:8px;margin-right:8px;max-width:280px;',
+			'change': ui.createHandlerFn(this, (ev) => {
+				const targetProvider = ev.target.value;
+				return L.resolveDefault(callResSetProvider(targetProvider), {}).then(() => {
+					ui.addNotification(null, E('p', _('Rule set provider changed to %s. Please click "Update all" to download new rules.').format(targetProvider === 'metacubex' ? 'MetaCubeX' : 'SagerNet')), 'info');
+					return o.map.reset();
+				});
+			})
+		}, [
+			E('option', { 'value': 'metacubex', 'selected': (currentProvider === 'metacubex' ? '' : null) }, _('MetaCubeX (Recommended, China IP updated)')),
+			E('option', { 'value': 'sagernet', 'selected': (currentProvider === 'sagernet' ? '' : null) }, _('SagerNet (Official default)'))
+		]);
+
 		return E('div', { 'class': 'cbi-map' }, [
-			E('h3', { 'name': 'content', 'style': 'align-items:center;display:flex' }, [
+			E('h3', { 'name': 'content', 'style': 'align-items:center;display:flex;flex-wrap:wrap;gap:8px;' }, [
 				_('Resource Management'),
+				E('span', { 'style': 'font-size:small;font-weight:normal;margin-left:12px;' }, _('Provider:')),
+				providerSelect,
 				E('button', {
 					'class': 'btn cbi-button cbi-button-action',
 					'style': 'margin-left:4px',

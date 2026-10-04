@@ -20,20 +20,45 @@ function hasKernelModule(kmod) {
 	return (system(sprintf('[ -e "/lib/modules/$(uname -r)"/%s ]', shellQuote(kmod))) === 0);
 }
 
-const RESOURCES = {
-	geoip_cn: {
-		source: 'https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-cn.srs',
-		version: `${HP_DIR}/resources/geoip_cn.ver`
+const RULESET_PROVIDERS = {
+	metacubex: {
+		name: 'MetaCubeX',
+		resources: {
+			geoip_cn: {
+				source: 'https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geoip/cn.srs',
+				version_url: 'https://github.com/MetaCubeX/meta-rules-dat/commits/sing.atom',
+				version: `${HP_DIR}/resources/geoip_cn.ver`
+			},
+			geosite_cn: {
+				source: 'https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/cn.srs',
+				version_url: 'https://github.com/MetaCubeX/meta-rules-dat/commits/sing.atom',
+				version: `${HP_DIR}/resources/geosite_cn.ver`
+			}
+		}
 	},
-	geosite_cn: {
-		source: 'https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set-unstable/geosite-cn.srs',
-		version: `${HP_DIR}/resources/geosite_cn.ver`
-	},
+	sagernet: {
+		name: 'SagerNet',
+		resources: {
+			geoip_cn: {
+				source: 'https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-cn.srs',
+				version_url: 'https://github.com/SagerNet/sing-geoip/releases/latest',
+				version: `${HP_DIR}/resources/geoip_cn.ver`
+			},
+			geosite_cn: {
+				source: 'https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set-unstable/geosite-cn.srs',
+				version_url: 'https://github.com/SagerNet/sing-geosite/releases/latest',
+				version: `${HP_DIR}/resources/geosite_cn.ver`
+			}
+		}
+	}
+};
+const COMMON_RESOURCES = {
 	dashboard: {
 		source: 'https://codeload.github.com/SagerNet/sing-box-dashboard/zip/refs/heads/gh-pages',
 		version: `${HP_DIR}/dashboard/dashboard.ver`
 	}
 };
+const RESOURCES = RULESET_PROVIDERS.metacubex.resources;
 const CONNECTION_SITES = {
 	baidu: 'https://www.baidu.com/',
 	bilibili: 'https://www.bilibili.com/',
@@ -874,27 +899,87 @@ const methods = {
 
 	resources_get: {
 		call: function() {
+			const hpuci = cursor();
+			hpuci.load('homeproxy');
+			let provider = hpuci.get('homeproxy', 'config', 'ruleset_provider') || 'metacubex';
+			if (!RULESET_PROVIDERS[provider])
+				provider = 'metacubex';
+
+			const prov = RULESET_PROVIDERS[provider];
 			let resources = [];
-			for (let resource_type in keys(RESOURCES)) {
-				const resource = RESOURCES[resource_type];
-				const version = trim(readfile(resource.version) || '');
+			for (let rk in keys(prov.resources)) {
+				const r = prov.resources[rk];
+				const version = trim(readfile(r.version) || '');
 				push(resources, {
-					type: resource_type,
+					type: rk,
 					version: version || null,
-					source: resource.source
+					source: r.source
 				});
 			}
-			return { resources };
+			for (let rk in keys(COMMON_RESOURCES)) {
+				const r = COMMON_RESOURCES[rk];
+				const version = trim(readfile(r.version) || '');
+				push(resources, {
+					type: rk,
+					version: version || null,
+					source: r.source
+				});
+			}
+			let providers = [];
+			for (let pk in keys(RULESET_PROVIDERS)) {
+				push(providers, {
+					id: pk,
+					name: RULESET_PROVIDERS[pk].name
+				});
+			}
+			return { provider, providers, resources };
+		}
+	},
+	resources_set_provider: {
+		args: { provider: 'provider' },
+		call: function(req) {
+			let provider = req.args?.provider;
+			if (!RULESET_PROVIDERS[provider])
+				return { error: 'invalid provider' };
+
+			const hpuci = cursor();
+			hpuci.load('homeproxy');
+			const old_provider = hpuci.get('homeproxy', 'config', 'ruleset_provider') || 'metacubex';
+			hpuci.set('homeproxy', 'config', 'ruleset_provider', provider);
+			hpuci.commit('homeproxy');
+
+			if (old_provider !== provider) {
+				unlink(`${HP_DIR}/resources/.ruleset_provider`);
+				unlink(`${HP_DIR}/resources/geoip_cn.ver`);
+				unlink(`${HP_DIR}/resources/geosite_cn.ver`);
+			}
+			return { success: true, provider };
 		}
 	},
 	resources_update: {
 		call: function() {
 			const hpuci = cursor();
 			hpuci.load('homeproxy');
+			let provider = hpuci.get('homeproxy', 'config', 'ruleset_provider') || 'metacubex';
+			if (!RULESET_PROVIDERS[provider])
+				provider = 'metacubex';
+			const prov = RULESET_PROVIDERS[provider];
+
 			const mixed_port = int(hpuci.get('homeproxy', 'infra', 'mixed_port')) || 5330;
 			const update_proxy = (hpuci.get('homeproxy', 'subscription', 'update_via_proxy') === '1') ?
 				`HOMEPROXY_UPDATE_PROXY=${shellQuote(`http://127.0.0.1:${mixed_port}`)} ` : '';
-			const status = system(`${update_proxy}${HP_DIR}/scripts/update_resources.sh`);
+
+			const env = sprintf(
+				'%sRULESET_PROVIDER=%s GEOIP_SOURCE=%s GEOIP_VERSION_URL=%s GEOSITE_SOURCE=%s GEOSITE_VERSION_URL=%s ',
+				update_proxy,
+				shellQuote(provider),
+				shellQuote(prov.resources.geoip_cn.source),
+				shellQuote(prov.resources.geoip_cn.version_url),
+				shellQuote(prov.resources.geosite_cn.source),
+				shellQuote(prov.resources.geosite_cn.version_url)
+			);
+
+			const status = system(`${env}${HP_DIR}/scripts/update_resources.sh`);
 			let update_result = {};
 			if (status !== 2) {
 				for (let line in split(trim(readfile(`${RUN_DIR}/update_resources.result`) || ''), '\n')) {

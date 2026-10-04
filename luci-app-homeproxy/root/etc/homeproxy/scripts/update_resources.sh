@@ -10,10 +10,28 @@ DASHBOARD_DIR="${DASHBOARD_DIR:-/etc/$NAME/dashboard}"
 RUN_DIR="${RUN_DIR:-/var/run/$NAME}"
 LOG_PATH="$RUN_DIR/$NAME.log"
 RESULT_PATH="$RUN_DIR/update_resources.result"
-GEOIP_SOURCE="${GEOIP_SOURCE:-https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-cn.srs}"
-GEOIP_VERSION_URL="${GEOIP_VERSION_URL:-https://github.com/SagerNet/sing-geoip/releases/latest}"
-GEOSITE_SOURCE="${GEOSITE_SOURCE:-https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set-unstable/geosite-cn.srs}"
-GEOSITE_VERSION_URL="${GEOSITE_VERSION_URL:-https://github.com/SagerNet/sing-geosite/releases/latest}"
+RULESET_PROVIDER="${RULESET_PROVIDER:-}"
+if [ -z "$RULESET_PROVIDER" ]; then
+	RULESET_PROVIDER="$(/sbin/uci -q get homeproxy.config.ruleset_provider 2>/dev/null || /sbin/uci -q get homeproxy.resources.ruleset_provider 2>/dev/null || echo "metacubex")"
+fi
+[ -z "$RULESET_PROVIDER" ] && RULESET_PROVIDER="metacubex"
+
+if [ "$RULESET_PROVIDER" = "sagernet" ]; then
+	DEFAULT_GEOIP_SOURCE="https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-cn.srs"
+	DEFAULT_GEOIP_VERSION_URL="https://github.com/SagerNet/sing-geoip/releases/latest"
+	DEFAULT_GEOSITE_SOURCE="https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set-unstable/geosite-cn.srs"
+	DEFAULT_GEOSITE_VERSION_URL="https://github.com/SagerNet/sing-geosite/releases/latest"
+else
+	DEFAULT_GEOIP_SOURCE="https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geoip/cn.srs"
+	DEFAULT_GEOIP_VERSION_URL="https://github.com/MetaCubeX/meta-rules-dat/commits/sing.atom"
+	DEFAULT_GEOSITE_SOURCE="https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/cn.srs"
+	DEFAULT_GEOSITE_VERSION_URL="https://github.com/MetaCubeX/meta-rules-dat/commits/sing.atom"
+fi
+
+GEOIP_SOURCE="${GEOIP_SOURCE:-$DEFAULT_GEOIP_SOURCE}"
+GEOIP_VERSION_URL="${GEOIP_VERSION_URL:-$DEFAULT_GEOIP_VERSION_URL}"
+GEOSITE_SOURCE="${GEOSITE_SOURCE:-$DEFAULT_GEOSITE_SOURCE}"
+GEOSITE_VERSION_URL="${GEOSITE_VERSION_URL:-$DEFAULT_GEOSITE_VERSION_URL}"
 DASHBOARD_SOURCE="${DASHBOARD_SOURCE:-https://codeload.github.com/SagerNet/sing-box-dashboard/zip/refs/heads/gh-pages}"
 DASHBOARD_VERSION_URL="${DASHBOARD_VERSION_URL:-https://github.com/SagerNet/sing-box-dashboard/commits/gh-pages.atom}"
 USER_AGENT="HomeProxy resource updater"
@@ -71,37 +89,48 @@ validate_rule_set() {
 	"$SING_BOX" rule-set match -f binary "$1" 192.0.2.1 >/dev/null 2>&1
 }
 
-fetch_release_version() {
-	local effective_url version
-	effective_url="$(run_curl -fsSL --compressed --retry 3 --retry-all-errors \
-		--retry-delay 1 --connect-timeout 10 --max-time 30 \
-		-A "$USER_AGENT" -o /dev/null -w '%{url_effective}' "$1")" || return 1
-	version="${effective_url##*/}"
-	case "$version" in
-	''|*[!0-9]*) return 1 ;;
+fetch_version() {
+	local url="$1"
+	case "$url" in
+	*.atom)
+		local feed version
+		feed="$(run_curl -fsSL --compressed --retry 3 --retry-all-errors \
+			--retry-delay 1 --connect-timeout 10 --max-time 30 \
+			-A "$USER_AGENT" "$url")" || return 1
+		version="$(printf '%s\n' "$feed" | awk -F '[<>]' '
+			/<updated>/ {
+				version = $3
+				gsub(/[-:TZ]/, "", version)
+				print version
+				exit
+			}
+		')"
+		case "$version" in
+		??????????????) case "$version" in *[!0-9]*) return 1 ;; esac ;;
+		*) return 1 ;;
+		esac
+		printf '%s\n' "$version"
+		;;
+	*)
+		local effective_url version
+		effective_url="$(run_curl -fsSL --compressed --retry 3 --retry-all-errors \
+			--retry-delay 1 --connect-timeout 10 --max-time 30 \
+			-A "$USER_AGENT" -o /dev/null -w '%{url_effective}' "$url")" || return 1
+		version="${effective_url##*/}"
+		case "$version" in
+		''|*[!0-9]*) return 1 ;;
+		esac
+		printf '%s\n' "$version"
+		;;
 	esac
-	printf '%s\n' "$version"
+}
+
+fetch_release_version() {
+	fetch_version "$1"
 }
 
 fetch_dashboard_version() {
-	local feed version
-
-	feed="$(run_curl -fsSL --compressed --retry 3 --retry-all-errors \
-		--retry-delay 1 --connect-timeout 10 --max-time 30 \
-		-A "$USER_AGENT" "$DASHBOARD_VERSION_URL")" || return 1
-	version="$(printf '%s\n' "$feed" | awk -F '[<>]' '
-		/<updated>/ {
-			version = $3
-			gsub(/[-:TZ]/, "", version)
-			print version
-			exit
-		}
-	')"
-	case "$version" in
-	??????????????) case "$version" in *[!0-9]*) return 1 ;; esac ;;
-	*) return 1 ;;
-	esac
-	printf '%s\n' "$version"
+	fetch_version "$DASHBOARD_VERSION_URL"
 }
 
 versioned_url() {
@@ -118,26 +147,34 @@ install_rule_set() {
 	mkdir -p "$stage_dir" &&
 		cp "$source_file" "$stage_dir/$resource.srs" &&
 		printf '%s\n' "$version" > "$stage_dir/$resource.ver" &&
-		chmod 0644 "$stage_dir/$resource.srs" "$stage_dir/$resource.ver" &&
+		printf '%s\n' "$RULESET_PROVIDER" > "$stage_dir/.ruleset_provider" &&
+		chmod 0644 "$stage_dir/$resource.srs" "$stage_dir/$resource.ver" "$stage_dir/.ruleset_provider" &&
 		mv -f "$stage_dir/$resource.srs" "$RESOURCES_DIR/$resource.srs" || return 1
 	mark_updated "$resource"
 	mv -f "$stage_dir/$resource.ver" "$RESOURCES_DIR/$resource.ver"
+	mv -f "$stage_dir/.ruleset_provider" "$RESOURCES_DIR/.ruleset_provider"
 }
 
 update_rule_set() {
 	local resource="$1" source_url="$2" version_url="$3"
-	local version old_version
+	local version old_version old_provider
 
-	if ! version="$(fetch_release_version "$version_url")"; then
+	old_provider="$(cat "$RESOURCES_DIR/.ruleset_provider" 2>/dev/null)"
+	if [ -n "$old_provider" ] && [ "$old_provider" != "$RULESET_PROVIDER" ]; then
+		log "[$resource] Rule-set provider changed ($old_provider -> $RULESET_PROVIDER), forcing refresh."
+		rm -f "$RESOURCES_DIR/$resource.ver"
+	fi
+
+	if ! version="$(fetch_version "$version_url")"; then
 		log "[$resource] Failed to get the latest version; continuing with other resources."
 		return 1
 	fi
 	old_version="$(cat "$RESOURCES_DIR/$resource.ver" 2>/dev/null)"
 	if [ "$old_version" = "$version" ] && validate_rule_set "$RESOURCES_DIR/$resource.srs"; then
-		log "[$resource] Current version: $version."
+		log "[$resource] Current version: $version ($RULESET_PROVIDER)."
 		return 0
 	fi
-	log "[$resource] Local version: ${old_version:-NOT FOUND}, latest version: $version."
+	log "[$resource] Local version: ${old_version:-NOT FOUND}, latest version: $version ($RULESET_PROVIDER)."
 	if ! download "$(versioned_url "$source_url" "$version")" "$TMP_DIR/$resource.srs"; then
 		log "[$resource] Update failed while downloading the rule set."
 		return 1

@@ -457,6 +457,14 @@ return view.extend({
 		o.default = 'bypass_mainland_china';
 		o.rmempty = false;
 
+		o = s.taboption('routing', form.ListValue, 'ruleset_provider', _('Rule set provider'),
+			_('Select the source provider for GeoIP and GeoSite rule sets. MetaCubeX provides up-to-date mainland China IP ranges.'));
+		o.depends('routing_mode', 'bypass_mainland_china');
+		o.value('metacubex', _('MetaCubeX (Recommended, China IP updated)'));
+		o.value('sagernet', _('SagerNet (Official default)'));
+		o.default = 'metacubex';
+		o.rmempty = false;
+
 		o = s.taboption('routing', form.Value, 'routing_port', _('Routing ports'),
 			_('Specify target ports to be proxied. Multiple ports must be separated by commas.'));
 		o.depends('routing_mode', 'bypass_mainland_china');
