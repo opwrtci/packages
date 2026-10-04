@@ -187,10 +187,6 @@ function getResources(o) {
 	});
 
 	return L.resolveDefault(callResStatus(), { resources: [] }).then((result) => {
-		const status = {};
-		(result.resources || []).forEach((resource) => {
-			status[resource.type] = resource;
-		});
 		const table = E('table', { 'class': 'table' }, [
 			E('tr', { 'class': 'tr table-titles' }, [
 				E('th', { 'class': 'th' }, _('Name')),
@@ -198,87 +194,172 @@ function getResources(o) {
 				E('th', { 'class': 'th' }, _('Source'))
 			])
 		]);
-		const rows = resources.map((resource) => {
-			const resourceStatus = status[resource.type] || {};
-			const available = resourceStatus.version;
-			const source = resourceStatus.source;
 
-			return [
-				resource.name,
-				E('span', { 'style': available ? 'color:green' : 'color:red' },
-					available || '-'),
-				source ? E('a', {
-					'href': source,
-					'target': '_blank',
-					'rel': 'noreferrer noopener',
-					'style': 'word-break:break-all'
-				}, source) : '-'
-			];
-		});
-		cbi_update_table(table, rows);
+		const renderRows = (resList) => {
+			const status = {};
+			(resList || []).forEach((resource) => {
+				status[resource.type] = resource;
+			});
+			return resources.map((resource) => {
+				const resourceStatus = status[resource.type] || {};
+				const available = resourceStatus.version;
+				const source = resourceStatus.source;
 
-		const currentProvider = result.provider || 'metacubex';
+				return [
+					resource.name,
+					E('span', { 'style': available ? 'color:green' : 'color:red' },
+						available || '-'),
+					source ? E('a', {
+						'href': source,
+						'target': '_blank',
+						'rel': 'noreferrer noopener',
+						'style': 'word-break:break-all'
+					}, source) : '-'
+				];
+			});
+		};
+
+		cbi_update_table(table, renderRows(result.resources));
+
+		let currentProvider = result.provider || 'metacubex';
 		const providerSelect = E('select', {
 			'class': 'cbi-input-select',
 			'style': 'margin-left:8px;margin-right:8px;max-width:280px;',
 			'change': ui.createHandlerFn(this, (ev) => {
 				const targetProvider = ev.target.value;
-				return L.resolveDefault(callResSetProvider(targetProvider), {}).then(() => {
-					ui.addNotification(null, E('p', _('Rule set provider changed to %s. Please click "Update all" to download new rules.').format(targetProvider === 'metacubex' ? 'MetaCubeX' : 'SagerNet')), 'info');
-					return o.map.reset();
+				providerSelect.disabled = true;
+				return L.resolveDefault(callResSetProvider(targetProvider), {}).then((res) => {
+					if (res && res.error) {
+						providerSelect.value = currentProvider;
+						ui.addNotification(null, E('p', _('Failed to switch provider: %s').format(res.error)), 'error');
+						return;
+					}
+					currentProvider = targetProvider;
+					providerSelect.value = targetProvider;
+					return L.resolveDefault(callResStatus(), { resources: [] }).then((fresh) => {
+						cbi_update_table(table, renderRows(fresh.resources));
+						ui.addNotification(null, E('p', _('Rule set provider changed to %s. Please click "Update all" to download new rules.').format(targetProvider === 'metacubex' ? 'MetaCubeX' : 'SagerNet')), 'info');
+					});
+				}).catch((err) => {
+					providerSelect.value = currentProvider;
+					ui.addNotification(null, E('p', err.message || err), 'error');
+				}).finally(() => {
+					providerSelect.disabled = false;
 				});
 			})
 		}, [
-			E('option', { 'value': 'metacubex', 'selected': (currentProvider === 'metacubex' ? '' : null) }, _('MetaCubeX (Recommended, China IP updated)')),
-			E('option', { 'value': 'sagernet', 'selected': (currentProvider === 'sagernet' ? '' : null) }, _('SagerNet (Official default)'))
+			E('option', { 'value': 'metacubex', 'selected': (currentProvider === 'metacubex' ? 'selected' : null) }, _('MetaCubeX (Recommended, China IP updated)')),
+			E('option', { 'value': 'sagernet', 'selected': (currentProvider === 'sagernet' ? 'selected' : null) }, _('SagerNet (Official default)'))
 		]);
+		providerSelect.value = currentProvider;
+
+		let isUpdating = result.is_updating || false;
+		let updatePollTimer = null;
+
+		function streamLog() {
+			const logEl = document.getElementById('homeproxy-log');
+			if (!logEl) return;
+			fs.read_direct(String.format('%s/%s.log', hp_dir, 'homeproxy'), 'text')
+			.then((res) => {
+				if (res && logEl.value !== res) {
+					const atBottom = (logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 80);
+					logEl.value = res;
+					if (atBottom)
+						logEl.scrollTop = logEl.scrollHeight;
+				}
+			}).catch(() => {});
+		}
+
+		function startUpdatePolling(btn) {
+			if (updatePollTimer) {
+				clearInterval(updatePollTimer);
+				updatePollTimer = null;
+			}
+			btn.disabled = true;
+			btn.classList.add('spinning');
+
+			streamLog();
+
+			updatePollTimer = setInterval(() => {
+				streamLog();
+				callResStatus().then((fresh) => {
+					if (!fresh || !fresh.is_updating) {
+						clearInterval(updatePollTimer);
+						updatePollTimer = null;
+						btn.disabled = false;
+						btn.classList.remove('spinning');
+
+						if (fresh && fresh.resources)
+							cbi_update_table(table, renderRows(fresh.resources));
+						streamLog();
+
+						const res = (fresh && fresh.last_result) ? fresh.last_result : {};
+						let message = _('Successfully updated.'), severity = 'info';
+						if (res.apply_failed === '1') {
+							message = _('Resources were updated, but HomeProxy failed to reload. Check the log for details.');
+							severity = 'error';
+						} else {
+							switch (parseInt(res.status)) {
+							case 0:
+								message = _('Successfully updated.');
+								break;
+							case 1:
+								message = _('Update failed.');
+								severity = 'error';
+								break;
+							case 2:
+								message = _('Update already in progress.');
+								break;
+							case 3:
+								message = _('Already at the latest version.');
+								break;
+							case 4:
+								message = _('Some resources failed to update. Check the log for details.');
+								severity = 'warning';
+								break;
+							default:
+								message = _('Update task completed.');
+								break;
+							}
+						}
+						ui.addNotification(null, E('p', message), severity);
+					}
+				}).catch(() => {});
+			}, 1000);
+		}
+
+		const updateBtn = E('button', {
+			'class': 'btn cbi-button cbi-button-action' + (isUpdating ? ' spinning' : ''),
+			'style': 'margin-left:4px',
+			'disabled': isUpdating ? true : null,
+			'click': function(btnEv) {
+				const btn = btnEv.currentTarget || btnEv.target;
+				btn.disabled = true;
+				btn.classList.add('spinning');
+
+				callResUpdate().then((res) => {
+					if (res && res.status === 2) {
+						ui.addNotification(null, E('p', _('Update already in progress.')), 'warning');
+					}
+					startUpdatePolling(btn);
+				}).catch((err) => {
+					btn.disabled = false;
+					btn.classList.remove('spinning');
+					ui.addNotification(null, E('p', err.message || err), 'error');
+				});
+			}
+		}, [ _('Update all') ]);
+
+		if (isUpdating) {
+			startUpdatePolling(updateBtn);
+		}
 
 		return E('div', { 'class': 'cbi-map' }, [
 			E('h3', { 'name': 'content', 'style': 'align-items:center;display:flex;flex-wrap:wrap;gap:8px;' }, [
 				_('Resource Management'),
 				E('span', { 'style': 'font-size:small;font-weight:normal;margin-left:12px;' }, _('Provider:')),
 				providerSelect,
-				E('button', {
-					'class': 'btn cbi-button cbi-button-action',
-					'style': 'margin-left:4px',
-					'click': ui.createHandlerFn(this, () => {
-						return L.resolveDefault(callResUpdate(), {}).then((res) => {
-							let message, severity = 'info';
-
-							if (res.apply_failed) {
-								message = _('Resources were updated, but HomeProxy failed to reload. Check the log for details.');
-								severity = 'error';
-							} else {
-								switch (res.status) {
-								case 0:
-									message = _('Successfully updated.');
-									break;
-								case 1:
-									message = _('Update failed.');
-									severity = 'error';
-									break;
-								case 2:
-									message = _('Update already in progress.');
-									break;
-								case 3:
-									message = _('Already at the latest version.');
-									break;
-								case 4:
-									message = _('Some resources failed to update. Check the log for details.');
-									severity = 'warning';
-									break;
-								default:
-									message = _('Unknown error.');
-									severity = 'error';
-									break;
-								}
-							}
-
-							ui.addNotification(null, E('p', message), severity);
-							return o.map.reset();
-						});
-					})
-				}, [ _('Update all') ])
+				updateBtn
 			]),
 			E('div', { 'class': 'cbi-section' }, [ table ])
 		]);
@@ -370,6 +451,8 @@ function getRuntimeLog(o, name, _option_index, section_id, _in_table) {
 		.then((res) => {
 			updateLog(res || _('Log is empty.'));
 		}).catch((err) => {
+			if (log_textarea.value && log_textarea.value !== _('Collecting data...'))
+				return;
 			if (err.toString().includes('NotFoundError'))
 				updateLog(_('Log file does not exist.'));
 			else

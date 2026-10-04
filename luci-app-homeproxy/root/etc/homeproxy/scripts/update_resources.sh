@@ -65,8 +65,8 @@ mark_failed() {
 }
 
 finish() {
-	printf 'status=%s\ncore_updated=%s\ndashboard_updated=%s\nupdated=%s\nfailed=%s\n' \
-		"$1" "$CORE_UPDATED" "$DASHBOARD_UPDATED" \
+	printf 'status=%s\ncore_updated=%s\ndashboard_updated=%s\napply_failed=%s\nupdated=%s\nfailed=%s\n' \
+		"$1" "$CORE_UPDATED" "$DASHBOARD_UPDATED" "$APPLY_FAILED" \
 		"$UPDATED_BRANCHES" "$FAILED_BRANCHES" > "$RESULT_PATH"
 	exit "$1"
 }
@@ -175,10 +175,12 @@ update_rule_set() {
 		return 0
 	fi
 	log "[$resource] Local version: ${old_version:-NOT FOUND}, latest version: $version ($RULESET_PROVIDER)."
+	log "[$resource] Downloading rule set from $(versioned_url "$source_url" "$version")..."
 	if ! download "$(versioned_url "$source_url" "$version")" "$TMP_DIR/$resource.srs"; then
 		log "[$resource] Update failed while downloading the rule set."
 		return 1
 	fi
+	log "[$resource] Validating binary rule set format..."
 	if ! validate_rule_set "$TMP_DIR/$resource.srs"; then
 		log "[$resource] Update failed: invalid binary rule set."
 		return 1
@@ -250,6 +252,7 @@ if ! flock -n 9 >/dev/null 2>&1; then
 	exit 2
 fi
 rm -f "$RESULT_PATH"
+log "[RESOURCES] Task started for provider '$RULESET_PROVIDER'."
 
 TMP_DIR="$(mktemp -d "$RUN_DIR/resources-update.XXXXXX")" || {
 	log "[RESOURCES] Failed to prepare the temporary update directory."
@@ -263,6 +266,19 @@ trap 'exit 143' TERM
 update_rule_set "geoip_cn" "$GEOIP_SOURCE" "$GEOIP_VERSION_URL" || mark_failed "geoip_cn"
 update_rule_set "geosite_cn" "$GEOSITE_SOURCE" "$GEOSITE_VERSION_URL" || mark_failed "geosite_cn"
 update_dashboard || mark_failed "dashboard"
+
+APPLY_FAILED=0
+if [ "$CORE_UPDATED" = "1" ] || [ "$DASHBOARD_UPDATED" = "1" ]; then
+	if /etc/init.d/homeproxy running >/dev/null 2>&1; then
+		log "[RESOURCES] Applying updated resources and reloading service..."
+		if ! /etc/init.d/homeproxy reload >/dev/null 2>&1; then
+			log "[RESOURCES] Error: Failed to reload HomeProxy service."
+			APPLY_FAILED=1
+		else
+			log "[RESOURCES] HomeProxy service reloaded successfully."
+		fi
+	fi
+fi
 
 if [ -n "$FAILED_BRANCHES" ]; then
 	if [ -n "$UPDATED_BRANCHES" ]; then
@@ -278,4 +294,5 @@ if [ -z "$UPDATED_BRANCHES" ]; then
 	finish 3
 fi
 
+log "[RESOURCES] All resources updated successfully."
 finish 0
