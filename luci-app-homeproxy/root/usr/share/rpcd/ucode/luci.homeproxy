@@ -934,7 +934,7 @@ const methods = {
 				});
 			}
 
-			const is_updating = (system(`flock -n ${RUN_DIR}/update_resources.lock -c true >/dev/null 2>&1`) !== 0);
+			const is_updating = (system(`mkdir -p ${RUN_DIR} && flock -n ${RUN_DIR}/update_resources.lock -c true >/dev/null 2>&1`) !== 0);
 			let last_result = {};
 			if (!is_updating) {
 				for (let line in split(trim(readfile(`${RUN_DIR}/update_resources.result`) || ''), '\n')) {
@@ -991,7 +991,7 @@ const methods = {
 				shellQuote(prov.resources.geosite_cn.version_url)
 			);
 
-			if (system(`flock -n ${RUN_DIR}/update_resources.lock -c true >/dev/null 2>&1`) !== 0) {
+			if (system(`mkdir -p ${RUN_DIR} && flock -n ${RUN_DIR}/update_resources.lock -c true >/dev/null 2>&1`) !== 0) {
 				return { status: 2, running: true };
 			}
 

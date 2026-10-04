@@ -252,6 +252,7 @@ function getResources(o) {
 			E('option', { 'value': 'sagernet', 'selected': (currentProvider === 'sagernet' ? 'selected' : null) }, _('SagerNet (Official default)'))
 		]);
 		providerSelect.value = currentProvider;
+		providerSelect.disabled = isUpdating ? true : false;
 
 		let isUpdating = result.is_updating || false;
 		let updatePollTimer = null;
@@ -277,6 +278,7 @@ function getResources(o) {
 			}
 			btn.disabled = true;
 			btn.classList.add('spinning');
+			providerSelect.disabled = true;
 
 			streamLog();
 
@@ -288,6 +290,7 @@ function getResources(o) {
 						updatePollTimer = null;
 						btn.disabled = false;
 						btn.classList.remove('spinning');
+						providerSelect.disabled = false;
 
 						if (fresh && fresh.resources)
 							cbi_update_table(table, renderRows(fresh.resources));
@@ -345,6 +348,7 @@ function getResources(o) {
 				}).catch((err) => {
 					btn.disabled = false;
 					btn.classList.remove('spinning');
+					providerSelect.disabled = false;
 					ui.addNotification(null, E('p', err.message || err), 'error');
 				});
 			}
