@@ -575,8 +575,7 @@ if (!isEmpty(main_node)) {
 			tag: 'local-dns',
 			type: 'udp',
 			server: '127.0.0.1',
-			server_port: 53,
-			detour: 'direct-out'
+			server_port: 53
 		});
 
 		push(config.dns.rules, {
