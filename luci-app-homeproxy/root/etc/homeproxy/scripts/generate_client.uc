@@ -579,7 +579,7 @@ if (!isEmpty(main_node)) {
 		});
 
 		push(config.dns.rules, {
-			domain_suffix: ['lan', 'local', 'arpa', 'internal', 'home.arpa', '.lan', '.local', '.arpa', '.internal', '.home.arpa'],
+			domain_suffix: ['lan', 'local', 'internal', 'home.arpa', '.lan', '.local', '.internal', '.home.arpa'],
 			domain: ['localhost'],
 			action: 'route',
 			server: 'local-dns'
