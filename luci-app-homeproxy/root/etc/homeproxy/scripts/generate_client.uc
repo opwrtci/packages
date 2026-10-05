@@ -571,6 +571,20 @@ if (!isEmpty(main_node)) {
 			...parse_dnsserver(china_dns_server)
 		});
 
+		push(config.dns.servers, {
+			tag: 'local-dns',
+			type: 'udp',
+			server: '127.0.0.1',
+			server_port: 53,
+			detour: 'direct-out'
+		});
+
+		push(config.dns.rules, {
+			domain_suffix: ['lan', 'local', 'arpa', 'internal', 'home.arpa', '.lan', '.local', '.arpa', '.internal', '.home.arpa'],
+			domain: ['localhost'],
+			action: 'route',
+			server: 'local-dns'
+		});
 		push(config.dns.rules, {
 			rule_set: 'geosite-cn',
 			action: 'route',
