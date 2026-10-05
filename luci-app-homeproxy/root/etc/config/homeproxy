@@ -24,7 +24,7 @@ config homeproxy 'config'
 	option dns_server 'https://dns.quad9.net/dns-query'
 	option china_dns_server 'https://dns.alidns.com/dns-query'
 	option log_level 'warn'
-	option ruleset_provider 'metacubex'
+	option ruleset_provider 'opwrtci'
 	option dashboard_enabled '0'
 	option dashboard_port '9095'
 

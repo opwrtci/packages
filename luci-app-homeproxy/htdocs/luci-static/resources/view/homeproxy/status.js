@@ -221,7 +221,7 @@ function getResources(o) {
 
 		cbi_update_table(table, renderRows(result.resources));
 
-		let currentProvider = result.provider || 'metacubex';
+		let currentProvider = result.provider || 'opwrtci';
 		let isUpdating = result.is_updating || false;
 		let updatePollTimer = null;
 
@@ -241,7 +241,7 @@ function getResources(o) {
 					providerSelect.value = targetProvider;
 					return L.resolveDefault(callResStatus(), { resources: [] }).then((fresh) => {
 						cbi_update_table(table, renderRows(fresh.resources));
-						ui.addNotification(null, E('p', _('Rule set provider changed to %s. Please click "Update all" to download new rules.').format(targetProvider === 'metacubex' ? 'MetaCubeX' : 'SagerNet')), 'info');
+						ui.addNotification(null, E('p', _('Rule set provider changed to %s. Please click "Update all" to download new rules.').format(targetProvider === 'opwrtci' ? 'OpWrtCI' : (targetProvider === 'metacubex' ? 'MetaCubeX' : 'SagerNet'))), 'info');
 					});
 				}).catch((err) => {
 					providerSelect.value = currentProvider;
@@ -251,7 +251,8 @@ function getResources(o) {
 				});
 			})
 		}, [
-			E('option', { 'value': 'metacubex', 'selected': (currentProvider === 'metacubex' ? 'selected' : null) }, _('MetaCubeX (Recommended, China IP updated)')),
+			E('option', { 'value': 'opwrtci', 'selected': (currentProvider === 'opwrtci' ? 'selected' : null) }, _('OpWrtCI (Recommended, China IP updated)')),
+			E('option', { 'value': 'metacubex', 'selected': (currentProvider === 'metacubex' ? 'selected' : null) }, _('MetaCubeX (China IP updated)')),
 			E('option', { 'value': 'sagernet', 'selected': (currentProvider === 'sagernet' ? 'selected' : null) }, _('SagerNet (Official default)'))
 		]);
 		providerSelect.value = currentProvider;

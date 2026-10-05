@@ -12,20 +12,25 @@ LOG_PATH="$RUN_DIR/$NAME.log"
 RESULT_PATH="$RUN_DIR/update_resources.result"
 RULESET_PROVIDER="${RULESET_PROVIDER:-}"
 if [ -z "$RULESET_PROVIDER" ]; then
-	RULESET_PROVIDER="$(/sbin/uci -q get homeproxy.config.ruleset_provider 2>/dev/null || /sbin/uci -q get homeproxy.resources.ruleset_provider 2>/dev/null || echo "metacubex")"
+	RULESET_PROVIDER="$(/sbin/uci -q get homeproxy.config.ruleset_provider 2>/dev/null || /sbin/uci -q get homeproxy.resources.ruleset_provider 2>/dev/null || echo "opwrtci")"
 fi
-[ -z "$RULESET_PROVIDER" ] && RULESET_PROVIDER="metacubex"
+[ -z "$RULESET_PROVIDER" ] && RULESET_PROVIDER="opwrtci"
 
 if [ "$RULESET_PROVIDER" = "sagernet" ]; then
 	DEFAULT_GEOIP_SOURCE="https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-cn.srs"
 	DEFAULT_GEOIP_VERSION_URL="https://github.com/SagerNet/sing-geoip/releases/latest"
 	DEFAULT_GEOSITE_SOURCE="https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set-unstable/geosite-cn.srs"
 	DEFAULT_GEOSITE_VERSION_URL="https://github.com/SagerNet/sing-geosite/releases/latest"
-else
+elif [ "$RULESET_PROVIDER" = "metacubex" ]; then
 	DEFAULT_GEOIP_SOURCE="https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geoip/cn.srs"
 	DEFAULT_GEOIP_VERSION_URL="https://github.com/MetaCubeX/meta-rules-dat/commits/sing.atom"
 	DEFAULT_GEOSITE_SOURCE="https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/cn.srs"
 	DEFAULT_GEOSITE_VERSION_URL="https://github.com/MetaCubeX/meta-rules-dat/commits/sing.atom"
+else
+	DEFAULT_GEOIP_SOURCE="https://cdn.jsdelivr.net/gh/opwrtci/meta-rules-dat@sing/geo/geoip/cn.srs"
+	DEFAULT_GEOIP_VERSION_URL="https://github.com/opwrtci/meta-rules-dat/commits/sing.atom"
+	DEFAULT_GEOSITE_SOURCE="https://cdn.jsdelivr.net/gh/opwrtci/meta-rules-dat@sing/geo/geosite/cn.srs"
+	DEFAULT_GEOSITE_VERSION_URL="https://github.com/opwrtci/meta-rules-dat/commits/sing.atom"
 fi
 
 GEOIP_SOURCE="${GEOIP_SOURCE:-$DEFAULT_GEOIP_SOURCE}"

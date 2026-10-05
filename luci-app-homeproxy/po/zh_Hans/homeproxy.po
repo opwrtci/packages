@@ -2480,10 +2480,18 @@ msgstr "规则集提供商"
 msgid "Provider:"
 msgstr "规则源："
 
+#: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/status.js:254
+msgid "OpWrtCI (Recommended, China IP updated)"
+msgstr "OpWrtCI (推荐, 阿里Anycast优化)"
+
+#: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/status.js:255
+msgid "MetaCubeX (China IP updated)"
+msgstr "MetaCubeX (国内IP更新及时)"
+
 #: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/status.js:224
 #: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/client.js:463
 msgid "MetaCubeX (Recommended, China IP updated)"
-msgstr "MetaCubeX (推荐，国内IP更新及时)"
+msgstr "MetaCubeX (国内IP更新及时)"
 
 #: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/status.js:225
 #: luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/client.js:464

@@ -21,6 +21,21 @@ function hasKernelModule(kmod) {
 }
 
 const RULESET_PROVIDERS = {
+	opwrtci: {
+		name: 'OpWrtCI (推荐, 阿里Anycast优化)',
+		resources: {
+			geoip_cn: {
+				source: 'https://cdn.jsdelivr.net/gh/opwrtci/meta-rules-dat@sing/geo/geoip/cn.srs',
+				version_url: 'https://github.com/opwrtci/meta-rules-dat/commits/sing.atom',
+				version: `${HP_DIR}/resources/geoip_cn.ver`
+			},
+			geosite_cn: {
+				source: 'https://cdn.jsdelivr.net/gh/opwrtci/meta-rules-dat@sing/geo/geosite/cn.srs',
+				version_url: 'https://github.com/opwrtci/meta-rules-dat/commits/sing.atom',
+				version: `${HP_DIR}/resources/geosite_cn.ver`
+			}
+		}
+	},
 	metacubex: {
 		name: 'MetaCubeX',
 		resources: {
@@ -58,7 +73,7 @@ const COMMON_RESOURCES = {
 		version: `${HP_DIR}/dashboard/dashboard.ver`
 	}
 };
-const RESOURCES = RULESET_PROVIDERS.metacubex.resources;
+const RESOURCES = RULESET_PROVIDERS.opwrtci.resources;
 const CONNECTION_SITES = {
 	baidu: 'https://www.baidu.com/',
 	bilibili: 'https://www.bilibili.com/',
@@ -902,9 +917,9 @@ const methods = {
 		call: function() {
 			const hpuci = cursor();
 			hpuci.load('homeproxy');
-			let provider = hpuci.get('homeproxy', 'config', 'ruleset_provider') || 'metacubex';
+			let provider = hpuci.get('homeproxy', 'config', 'ruleset_provider') || 'opwrtci';
 			if (!RULESET_PROVIDERS[provider])
-				provider = 'metacubex';
+				provider = 'opwrtci';
 
 			const prov = RULESET_PROVIDERS[provider];
 			let resources = [];
@@ -956,7 +971,7 @@ const methods = {
 
 			const hpuci = cursor();
 			hpuci.load('homeproxy');
-			const old_provider = hpuci.get('homeproxy', 'config', 'ruleset_provider') || 'metacubex';
+			const old_provider = hpuci.get('homeproxy', 'config', 'ruleset_provider') || 'opwrtci';
 			hpuci.set('homeproxy', 'config', 'ruleset_provider', provider);
 			hpuci.commit('homeproxy');
 
@@ -972,9 +987,9 @@ const methods = {
 		call: function() {
 			const hpuci = cursor();
 			hpuci.load('homeproxy');
-			let provider = hpuci.get('homeproxy', 'config', 'ruleset_provider') || 'metacubex';
+			let provider = hpuci.get('homeproxy', 'config', 'ruleset_provider') || 'opwrtci';
 			if (!RULESET_PROVIDERS[provider])
-				provider = 'metacubex';
+				provider = 'opwrtci';
 			const prov = RULESET_PROVIDERS[provider];
 
 			const mixed_port = int(hpuci.get('homeproxy', 'infra', 'mixed_port')) || 5330;
