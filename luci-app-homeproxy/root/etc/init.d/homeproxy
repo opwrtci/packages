@@ -35,6 +35,8 @@ log() {
 
 clear_firewall() {
 	: > "$RUN_DIR/fw4_input.nft"
+	: > "$RUN_DIR/fw4_post.nft"
+	nft delete chain inet fw4 homeproxy_quic_reject 2>/dev/null || true
 	fw4 reload >"/dev/null" 2>&1
 }
 
@@ -291,7 +293,7 @@ start_service() {
 
 	# Prepare firewall before sing-box inserts native TUN auto-redirect rules.
 	local firewall_ready=1
-	if ! HOMEPROXY_SERVER_READY="$server_ready" \
+	if ! HOMEPROXY_CLIENT_READY="$client_ready" HOMEPROXY_SERVER_READY="$server_ready" \
 		ucode "$HP_DIR/scripts/firewall_pre.uc" 2>>"$LOG_PATH"; then
 		log "Error: failed to prepare firewall includes."
 		clear_firewall
@@ -367,7 +369,7 @@ start_service() {
 
 	if [ "$client_ready" -eq 0 ] && [ "$server_ready" -eq 1 ] && [ "$firewall_ready" -eq 0 ]; then
 		# A client-only setup failure may have cleared shared firewall includes.
-		if HOMEPROXY_SERVER_READY=1 ucode "$HP_DIR/scripts/firewall_pre.uc" 2>>"$LOG_PATH" && \
+		if HOMEPROXY_CLIENT_READY=0 HOMEPROXY_SERVER_READY=1 ucode "$HP_DIR/scripts/firewall_pre.uc" 2>>"$LOG_PATH" && \
 		   fw4 reload >"/dev/null" 2>&1; then
 			firewall_ready=1
 		else

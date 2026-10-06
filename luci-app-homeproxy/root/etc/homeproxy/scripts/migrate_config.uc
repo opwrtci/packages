@@ -157,6 +157,7 @@ if (isEmpty(uci.get(uciconfig, 'infra', 'udp_timeout')))
 setDefault('config', 'main_urltest_interval', '120');
 setDefault('config', 'main_urltest_tolerance', '60');
 setDefault('config', 'main_urltest_interrupt_exist_connections', '0');
+setDefault('config', 'kernel_block_quic', '1');
 setDefault('config', 'log_level', 'warn');
 setDefault('config', 'multi_queue', '1');
 setDefault('config', 'pure_tun', '0');

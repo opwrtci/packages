@@ -27,6 +27,7 @@ config homeproxy 'config'
 	option ruleset_provider 'opwrtci'
 	option proxy_ipv4_only '1'
 	option block_proxy_quic '1'
+	option kernel_block_quic '1'
 	option dashboard_enabled '0'
 	option dashboard_port '9095'
 

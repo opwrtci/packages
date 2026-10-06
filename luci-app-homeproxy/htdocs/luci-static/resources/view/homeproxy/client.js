@@ -379,13 +379,6 @@ return view.extend({
 		o.depends({ routing_mode: 'global', main_node: 'urltest' });
 		o.retain = true;
 
-		o = s.taboption('routing', form.Flag, 'main_urltest_interrupt_exist_connections', _('Interrupt existing connections'),
-			_('Interrupt existing connections when the selected outbound has changed.'));
-		o.default = o.disabled;
-		o.rmempty = false;
-		o.depends({ routing_mode: 'bypass_mainland_china', main_node: 'urltest' });
-		o.depends({ routing_mode: 'global', main_node: 'urltest' });
-		o.retain = true;
 
 		o = s.taboption('routing', form.Value, 'dns_server', _('DNS server'),
 			_('Support UDP, TCP, DoH, DoQ, DoT. TCP protocol will be used if not specified.'));
@@ -517,6 +510,20 @@ return view.extend({
 		o = s.taboption('advanced', form.Flag, 'block_proxy_quic', _('阻断海外 QUIC'));
 		o.description = _('阻断发往代理节点的 UDP 443 流量，促使 Chrome 等浏览器在 0 毫秒内回退至极速稳定的 TCP HTTP/2，消除 QUIC 握手黑洞导致的转圈与卡顿。默认开启。');
 		o.default = o.enabled;
+		o.rmempty = false;
+		o.depends('routing_mode', 'bypass_mainland_china');
+		o.depends('routing_mode', 'global');
+
+		o = s.taboption('advanced', form.Flag, 'kernel_block_quic', _('内核拒止 QUIC'));
+		o.description = _('在 Linux 内核层 (nftables) 瞬时响应 ICMP 端口不可达，促使客户端 0 毫秒降级至极速 TCP，彻底杜绝 Sing-Box 用户态因 QUIC 泛洪丢包导致短视频卡死。默认开启。');
+		o.default = o.enabled;
+		o.rmempty = false;
+		o.depends('routing_mode', 'bypass_mainland_china');
+		o.depends('routing_mode', 'global');
+
+		o = s.taboption('advanced', form.Flag, 'main_urltest_interrupt_exist_connections', _('测速中断连接'));
+		o.description = _('当节点自动测速（URLTest）切换时中断已有连接。默认保持关闭，避免测速切换时视频断流卡顿。默认关闭。');
+		o.default = o.disabled;
 		o.rmempty = false;
 		o.depends('routing_mode', 'bypass_mainland_china');
 		o.depends('routing_mode', 'global');
