@@ -2518,3 +2518,6 @@ msgstr "纯 TUN 模式"
 
 msgid "统一使用纯 TUN 虚拟网卡接管 TCP 与 UDP 流量，关闭 TCP REDIRECT 端口重定向。默认关闭。"
 msgstr "统一使用纯 TUN 虚拟网卡接管 TCP 与 UDP 流量，关闭 TCP REDIRECT 端口重定向。默认关闭。"
+
+msgid "高级设置"
+msgstr "高级设置"

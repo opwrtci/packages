@@ -340,6 +340,7 @@ return view.extend({
 		s = m.section(form.NamedSection, 'config', 'homeproxy');
 
 		s.tab('routing', _('Routing Settings'));
+		s.tab('advanced', _('高级设置'));
 		s.tab('dashboard', _('Dashboard'));
 
 		o = s.taboption('routing', form.ListValue, 'main_node', _('Main node'));
@@ -486,34 +487,34 @@ return view.extend({
 			return true;
 		}
 
-		o = s.taboption('routing', form.Flag, 'multi_queue', _('TUN multi-queue'),
+		o = s.taboption('advanced', form.Flag, 'multi_queue', _('TUN multi-queue'),
 			_('Enable TUN multi-queue to scale throughput with CPU cores. Requires the sing-tun TCP/IP stack.'));
 		o.default = o.enabled;
 		o.depends('routing_mode', 'bypass_mainland_china');
 		o.depends('routing_mode', 'global');
 		o.rmempty = false;
 
-		o = s.taboption('routing', form.Flag, 'pure_tun', _('纯 TUN 模式'));
+		o = s.taboption('advanced', form.Flag, 'pure_tun', _('纯 TUN 模式'));
 		o.description = _('统一使用纯 TUN 虚拟网卡接管 TCP 与 UDP 流量，关闭 TCP REDIRECT 端口重定向。默认关闭。');
 		o.default = o.disabled;
 		o.depends('routing_mode', 'bypass_mainland_china');
 		o.depends('routing_mode', 'global');
 		o.rmempty = false;
 
-		o = s.taboption('routing', form.Flag, 'ipv6_support', _('IPv6 support'));
+		o = s.taboption('advanced', form.Flag, 'ipv6_support', _('IPv6 support'));
 		o.default = o.enabled;
 		o.rmempty = false;
 		o.depends('routing_mode', 'bypass_mainland_china');
 		o.depends('routing_mode', 'global');
 
-		o = s.taboption('routing', form.Flag, 'proxy_ipv4_only', _('海外优先 IPv4'));
+		o = s.taboption('advanced', form.Flag, 'proxy_ipv4_only', _('海外优先 IPv4'));
 		o.description = _('针对非大陆域名拦截 AAAA (IPv6) 解析并返回空记录，强制使用 IPv4 走代理出站，彻底避免 Chrome 等应用在 IPv6 节点链路假死；国内域名保留完整 IPv4/IPv6 双栈直连。默认开启。');
 		o.default = o.enabled;
 		o.rmempty = false;
 		o.depends('routing_mode', 'bypass_mainland_china');
 		o.depends('routing_mode', 'global');
 
-		o = s.taboption('routing', form.Flag, 'block_proxy_quic', _('阻断海外 QUIC'));
+		o = s.taboption('advanced', form.Flag, 'block_proxy_quic', _('阻断海外 QUIC'));
 		o.description = _('阻断发往代理节点的 UDP 443 流量，促使 Chrome 等浏览器在 0 毫秒内回退至极速稳定的 TCP HTTP/2，消除 QUIC 握手黑洞导致的转圈与卡顿。默认开启。');
 		o.default = o.enabled;
 		o.rmempty = false;
