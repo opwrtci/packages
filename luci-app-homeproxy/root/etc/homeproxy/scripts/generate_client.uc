@@ -79,6 +79,8 @@ const dns_port = uci.get(uciconfig, uciinfra, 'dns_port') || '5333';
 const ntp_server = uci.get(uciconfig, uciinfra, 'ntp_server') || 'time.apple.com';
 
 const ipv6_support = uci.get(uciconfig, ucimain, 'ipv6_support') || '0';
+const proxy_ipv4_only = uci.get(uciconfig, ucimain, 'proxy_ipv4_only') !== '0';
+const block_proxy_quic = uci.get(uciconfig, ucimain, 'block_proxy_quic') !== '0';
 
 const main_node = uci.get(uciconfig, ucimain, 'main_node') || 'nil';
 
@@ -589,6 +591,13 @@ if (!isEmpty(main_node)) {
 			action: 'route',
 			server: 'china-dns'
 		});
+		if (proxy_ipv4_only) {
+			push(config.dns.rules, {
+				query_type: ['AAAA'],
+				action: 'predefined',
+				rcode: 'NOERROR'
+			});
+		}
 		push(config.dns.rules, {
 			action: 'evaluate',
 			server: 'main-dns',
@@ -603,6 +612,12 @@ if (!isEmpty(main_node)) {
 		push(config.dns.rules, {
 			match_response: true,
 			action: 'respond'
+		});
+	} else if (proxy_ipv4_only) {
+		push(config.dns.rules, {
+			query_type: ['AAAA'],
+			action: 'predefined',
+			rcode: 'NOERROR'
 		});
 	}
 }
@@ -827,6 +842,14 @@ if (!isEmpty(main_node)) {
 			rule_set: 'geoip-cn',
 			action: 'route',
 			outbound: 'direct-out'
+		});
+	}
+
+	if (block_proxy_quic) {
+		push(config.route.rules, {
+			protocol: ['udp'],
+			port: [443],
+			action: 'reject'
 		});
 	}
 
