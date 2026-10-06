@@ -847,8 +847,12 @@ if (!isEmpty(main_node)) {
 
 	if (block_proxy_quic) {
 		push(config.route.rules, {
-			protocol: ['udp'],
+			network: ['udp'],
 			port: [443],
+			action: 'reject'
+		});
+		push(config.route.rules, {
+			protocol: ['quic'],
 			action: 'reject'
 		});
 	}
