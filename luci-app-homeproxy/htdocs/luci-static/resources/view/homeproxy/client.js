@@ -506,14 +506,14 @@ return view.extend({
 		o.depends('routing_mode', 'bypass_mainland_china');
 		o.depends('routing_mode', 'global');
 
-		o = s.taboption('routing', form.Flag, 'proxy_ipv4_only', _('海外优先 IPv4 (禁用海外 IPv6 解析)'));
+		o = s.taboption('routing', form.Flag, 'proxy_ipv4_only', _('海外优先 IPv4'));
 		o.description = _('针对非大陆域名拦截 AAAA (IPv6) 解析并返回空记录，强制使用 IPv4 走代理出站，彻底避免 Chrome 等应用在 IPv6 节点链路假死；国内域名保留完整 IPv4/IPv6 双栈直连。默认开启。');
 		o.default = o.enabled;
 		o.rmempty = false;
 		o.depends('routing_mode', 'bypass_mainland_china');
 		o.depends('routing_mode', 'global');
 
-		o = s.taboption('routing', form.Flag, 'block_proxy_quic', _('阻断海外 QUIC (UDP 443)'));
+		o = s.taboption('routing', form.Flag, 'block_proxy_quic', _('阻断海外 QUIC'));
 		o.description = _('阻断发往代理节点的 UDP 443 流量，促使 Chrome 等浏览器在 0 毫秒内回退至极速稳定的 TCP HTTP/2，消除 QUIC 握手黑洞导致的转圈与卡顿。默认开启。');
 		o.default = o.enabled;
 		o.rmempty = false;
