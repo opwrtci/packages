@@ -13,7 +13,7 @@ import { cursor } from 'uci';
 
 import {
 	addECHDNS, createNodeLabelRegistry, filterExistingNodes, findDomainGroupConflict,
-	hasForceProxyRules, isEmpty, normalizeDomainList, normalizeList, parseURL,
+	isEmpty, normalizeDomainList, normalizeList, parseURL,
 	domainListPath, resolveLanPolicy, splitDomainList,
 	reserveUniqueLabel, strToBool, strToInt, strToTime,
 	removeBlankAttrs, renderEndpoint, renderOutbound, validation, HP_DIR, RUN_DIR
@@ -115,6 +115,14 @@ if (routing_mode === 'bypass_mainland_china') {
 		china_dns_server = wan_dns;
 }
 const dns_default_strategy = (ipv6_support === '1') ? 'prefer_ipv6' : 'prefer_ipv4';
+
+function make_domain_resolver(server) {
+	return {
+		server: server || 'default-dns',
+		strategy: dns_default_strategy
+	};
+}
+
 /* Budget for the proxied probe query: the sing-box default of 10s is far too long
    to stall on when the main DNS is unreachable, since the probe falls back anyway. */
 const dns_evaluate_timeout = '5s';
@@ -166,9 +174,6 @@ uci.foreach(uciconfig, 'domain_route', (cfg) => {
 const domain_group_conflict = findDomainGroupConflict(domain_groups);
 if (domain_group_conflict)
 	die(`Domain rule ${domain_group_conflict.left.value} conflicts with ${domain_group_conflict.right.value}.`);
-const has_domain_proxy_rules = length(filter(domain_groups, (group) =>
-	group.kind !== 'direct' && (length(group.suffixes) || length(group.keywords))
-)) > 0;
 
 function domain_group_outbound_tag(group) {
 	if (group.kind === 'direct')
@@ -204,8 +209,6 @@ const dashboard_enabled = uci.get(uciconfig, ucimain, 'dashboard_enabled') === '
       !isEmpty(readfile(dashboard_path + '/index.html')),
       dashboard_port = strToInt(uci.get(uciconfig, ucimain, 'dashboard_port')),
       dashboard_secret = uci.get(uciconfig, ucimain, 'dashboard_secret');
-const force_proxy_rules = hasForceProxyRules(uci, uciconfig, has_domain_proxy_rules);
-const fast_bypass_mainland = routing_mode === 'bypass_mainland_china' && !force_proxy_rules;
 /* UCI config end */
 
 /* Config helper start */
@@ -293,8 +296,16 @@ function push_bypass(rules, match_rule) {
 			outbound: 'direct'
 		});
 	else
+		/* A socket routed through the TUN fallback table can already have a TUN
+		   source address, notably with source-specific IPv6 WAN defaults. Kernel
+		   bypass cannot restore a WAN source; leave these flows to normal routing. */
 		push(rules, {
-			...match_rule,
+			type: 'logical',
+			mode: 'and',
+			rules: [
+				match_rule,
+				{ source_ip_cidr: [tun_addr4, tun_addr6], invert: true }
+			],
 			action: 'bypass'
 		});
 }
@@ -472,7 +483,7 @@ if (!isEmpty(ntp_server))
 		enabled: true,
 		server: ntp_server,
 		detour: 'direct-out',
-		domain_resolver: { server: 'default-dns', strategy: dns_default_strategy },
+		domain_resolver: make_domain_resolver(),
 	};
 
 /* DNS start */
@@ -495,10 +506,7 @@ if (!isEmpty(main_node)) {
 	/* Main DNS */
 	push(config.dns.servers, {
 		tag: 'main-dns',
-		domain_resolver: {
-			server: 'default-dns',
-			strategy: dns_default_strategy
-		},
+		domain_resolver: make_domain_resolver(),
 		detour: 'main-out',
 		...parse_dnsserver(dns_server, 'tcp')
 	});
@@ -533,10 +541,7 @@ if (!isEmpty(main_node)) {
 		diversion_dns_servers[outbound] = tag;
 		push(config.dns.servers, {
 			tag,
-			domain_resolver: {
-				server: 'default-dns',
-				strategy: dns_default_strategy
-			},
+			domain_resolver: make_domain_resolver(),
 			detour: outbound,
 			...parse_dnsserver(dns_server, 'tcp')
 		});
@@ -565,10 +570,7 @@ if (!isEmpty(main_node)) {
 	if (routing_mode === 'bypass_mainland_china') {
 		push(config.dns.servers, {
 			tag: 'china-dns',
-			domain_resolver: {
-				server: 'default-dns',
-				strategy: dns_default_strategy
-			},
+			domain_resolver: make_domain_resolver(),
 			detour: null,
 			...parse_dnsserver(china_dns_server)
 		});
@@ -656,7 +658,6 @@ push(config.inbounds, {
 		'172.16.0.0/12', '192.168.0.0/16', '100.64.0.0/10',
 		'::1/128', 'fc00::/7', 'fe80::/10'
 	] : null,
-	route_exclude_address_set: fast_bypass_mainland ? ['geoip-cn'] : null,
 	include_interface: length(listen_interfaces) ? listen_interfaces : null,
 	udp_timeout,
 	multi_queue
@@ -713,7 +714,7 @@ if (!isEmpty(main_node)) {
 		} else {
 			const outbound = generate_outbound(node);
 			if (outbound) {
-				addECHDNS(config, node, { server: 'default-dns', strategy: dns_default_strategy });
+				addECHDNS(config, node, make_domain_resolver());
 				outbound.tag = tag || get_node_outbound_tag(section_id);
 				push(config.outbounds, outbound);
 			}
@@ -775,10 +776,9 @@ config.route.default_http_client = 'direct-http';
 /* Routing rules */
 if (!isEmpty(main_node)) {
 	/* Avoid DNS loop */
-	config.route.default_domain_resolver = {
-		server: (routing_mode === 'bypass_mainland_china') ? 'china-dns' : 'default-dns',
-		strategy: dns_default_strategy
-	};
+	config.route.default_domain_resolver = make_domain_resolver(
+		(routing_mode === 'bypass_mainland_china') ? 'china-dns' : 'default-dns'
+	);
 
 	/* Native auto_redirect pre-match: handle device and address exceptions first. */
 	const pre_match_control = add_control_pre_match_policy_rules(config.route.rules, 'main-out');
@@ -804,7 +804,7 @@ if (!isEmpty(main_node)) {
 	}
 	add_control_pre_match_fallback_rules(config.route.rules, pre_match_control);
 
-	if (routing_mode === 'bypass_mainland_china' && force_proxy_rules) {
+	if (routing_mode === 'bypass_mainland_china') {
 		push_bypass(config.route.rules, tun_match({ rule_set: 'geosite-cn' }));
 		push_bypass(config.route.rules, tun_match({ rule_set: 'geoip-cn' }));
 	}
