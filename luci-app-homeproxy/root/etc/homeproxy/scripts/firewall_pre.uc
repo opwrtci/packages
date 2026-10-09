@@ -30,7 +30,7 @@ const kernel_block_quic = uci.get(cfgname, 'config', 'kernel_block_quic') !== '0
 if (getenv('HOMEPROXY_CLIENT_READY') === '1' && kernel_block_quic) {
 	push(post, 'chain homeproxy_quic_reject {');
 	push(post, '\ttype filter hook forward priority filter - 5; policy accept;');
-	push(post, '\tip daddr != { 10.0.0.0/8, 127.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 } meta l4proto udp udp dport 443 counter reject with icmpx type port-unreachable comment "!homeproxy: reject QUIC"');
+	push(post, '\toifname "singtun0" meta l4proto udp udp dport 443 counter reject with icmpx type port-unreachable comment "!homeproxy: reject QUIC to tun"');
 	push(post, '}');
 }
 
