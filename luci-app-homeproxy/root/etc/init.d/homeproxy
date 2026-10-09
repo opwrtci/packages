@@ -37,6 +37,8 @@ clear_firewall() {
 	: > "$RUN_DIR/fw4_input.nft"
 	: > "$RUN_DIR/fw4_post.nft"
 	nft delete chain inet fw4 homeproxy_quic_reject 2>/dev/null || true
+	nft delete set inet fw4 hp_china_ip4 2>/dev/null || true
+	nft delete set inet fw4 hp_china_ip6 2>/dev/null || true
 	fw4 reload >"/dev/null" 2>&1
 }
 
@@ -301,6 +303,9 @@ start_service() {
 		client_ready=0
 		rm -f "$RUN_DIR/sing-box-c.json"
 	fi
+	nft delete chain inet fw4 homeproxy_quic_reject 2>/dev/null || true
+	nft delete set inet fw4 hp_china_ip4 2>/dev/null || true
+	nft delete set inet fw4 hp_china_ip6 2>/dev/null || true
 	if [ "$firewall_ready" -eq 1 ] && ! fw4 reload >"/dev/null" 2>&1; then
 		log "Error: failed to apply client firewall rules."
 		clear_firewall

@@ -117,7 +117,7 @@ if (routing_mode === 'bypass_mainland_china') {
 const dns_default_strategy = (ipv6_support === '1') ? 'prefer_ipv6' : 'prefer_ipv4';
 /* Budget for the proxied probe query: the sing-box default of 10s is far too long
    to stall on when the main DNS is unreachable, since the probe falls back anyway. */
-const dns_evaluate_timeout = '3s';
+const dns_evaluate_timeout = '5s';
 
 let domain_groups = [];
 

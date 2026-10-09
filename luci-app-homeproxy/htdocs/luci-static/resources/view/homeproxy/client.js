@@ -382,6 +382,8 @@ return view.extend({
 
 		o = s.taboption('routing', form.Value, 'dns_server', _('DNS server'),
 			_('Support UDP, TCP, DoH, DoQ, DoT. TCP protocol will be used if not specified.'));
+		o.value('tcp://8.8.8.8', _('Google Public DNS (TCP - 极速推荐)'));
+		o.value('tcp://1.1.1.1', _('Cloudflare Public DNS (TCP)'));
 		o.value('wan', _('WAN DNS (read from interface)'));
 		o.value('https://dns.cloudflare.com/dns-query', _('Cloudflare Public DNS (DoH)'));
 		o.value('https://dns.google/dns-query', _('Google Public DNS (DoH)'));
@@ -389,7 +391,7 @@ return view.extend({
 		o.value('https://dns.adguard-dns.com/dns-query', _('AdGuard Public DNS (DoH)'));
 		o.value('https://dns.sb/dns-query', _('DNS.SB Public DNS (DoH)'));
 		o.value('https://dns.opendns.com/dns-query', _('Cisco Public DNS (DoH)'));
-		o.default = 'https://dns.quad9.net/dns-query';
+		o.default = 'tcp://8.8.8.8';
 		o.rmempty = false;
 		o.depends('routing_mode', 'bypass_mainland_china');
 		o.depends('routing_mode', 'global');
@@ -420,12 +422,14 @@ return view.extend({
 
 		o = s.taboption('routing', form.Value, 'china_dns_server', _('China DNS server'),
 			_('The dns server for resolving China domains. Support UDP, TCP, DoH, DoQ, DoT.'));
+		o.value('223.5.5.5', _('AliDNS (UDP 223.5.5.5 - 极速推荐)'));
+		o.value('119.29.29.29', _('DNSPod / Tencent (UDP 119.29.29.29)'));
 		o.value('wan', _('WAN DNS (read from interface)'));
 		o.value('https://doh-pure.onedns.net/dns-query', _('ThreatBook Public DNS (DoH)'));
 		o.value('https://doh.pub/dns-query', _('Tencent Public DNS (DoH)'));
 		o.value('https://dns.alidns.com/dns-query', _('AliDNS Public DNS (DoH)'));
 		o.depends('routing_mode', 'bypass_mainland_china');
-		o.default = 'https://dns.alidns.com/dns-query';
+		o.default = '223.5.5.5';
 		o.rmempty = false;
 		o.retain = true;
 		o.validate = function(section_id, value) {
@@ -507,15 +511,15 @@ return view.extend({
 		o.depends('routing_mode', 'bypass_mainland_china');
 		o.depends('routing_mode', 'global');
 
-		o = s.taboption('advanced', form.Flag, 'block_proxy_quic', _('阻断海外 QUIC'));
-		o.description = _('阻断发往代理节点的 UDP 443 流量，促使 Chrome 等浏览器在 0 毫秒内回退至极速稳定的 TCP HTTP/2，消除 QUIC 握手黑洞导致的转圈与卡顿。默认开启。');
-		o.default = o.enabled;
+		o = s.taboption('advanced', form.Flag, 'block_proxy_quic', _('阻断海外 QUIC (用户态)'));
+		o.description = _('阻断发往代理节点的 UDP 443 流量。若已启用【内核拒止 QUIC】，建议保持关闭，由内核完成 0 毫秒 ICMP 拒止，避免用户态静默丢包。');
+		o.default = o.disabled;
 		o.rmempty = false;
 		o.depends('routing_mode', 'bypass_mainland_china');
 		o.depends('routing_mode', 'global');
 
-		o = s.taboption('advanced', form.Flag, 'kernel_block_quic', _('内核拒止 QUIC'));
-		o.description = _('在 Linux 内核层 (nftables) 瞬时响应 ICMP 端口不可达，促使客户端 0 毫秒降级至极速 TCP，彻底杜绝 Sing-Box 用户态因 QUIC 泛洪丢包导致短视频卡死。默认开启。');
+		o = s.taboption('advanced', form.Flag, 'kernel_block_quic', _('内核拒止 QUIC (推荐)'));
+		o.description = _('在 Linux 内核层 (nftables) 针对非大陆 UDP 443 瞬时响应 ICMP 端口不可达，促使客户端 0 毫秒降级至极速 TCP，彻底杜绝丢包重传与短视频卡顿。默认开启。');
 		o.default = o.enabled;
 		o.rmempty = false;
 		o.depends('routing_mode', 'bypass_mainland_china');
